@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 def fix_notebook_widgets(notebook_path):
-    """Fix the widgets metadata structure in a Jupyter notebook."""
+    """Remove problematic widgets metadata from Jupyter notebook for GitHub compatibility."""
     with open(notebook_path, 'r', encoding='utf-8') as f:
         notebook = json.load(f)
     
@@ -22,33 +22,17 @@ def fix_notebook_widgets(notebook_path):
         print(f"No widgets metadata found in {notebook_path}")
         return False
     
-    widgets = notebook['metadata']['widgets']
+    # Remove the widgets metadata entirely - it causes GitHub rendering issues
+    # The widget outputs in cells will still be preserved
+    del notebook['metadata']['widgets']
     
-    # Check if it already has the correct structure
-    if 'state' in widgets and isinstance(widgets['state'], dict):
-        print(f"✓ {notebook_path} already has correct structure")
-        return False
+    # Write back to file
+    with open(notebook_path, 'w', encoding='utf-8') as f:
+        json.dump(notebook, f, indent=1, ensure_ascii=False)
+        f.write('\n')  # Add trailing newline
     
-    # If widgets is a dict with widget IDs, restructure it
-    if isinstance(widgets, dict) and widgets:
-        # Check if this looks like the old structure (has widget IDs as keys)
-        first_key = next(iter(widgets.keys()))
-        if first_key != 'state' and isinstance(widgets[first_key], dict):
-            # Restructure: wrap existing widgets in a 'state' key
-            notebook['metadata']['widgets'] = {
-                'state': widgets
-            }
-            
-            # Write back to file
-            with open(notebook_path, 'w', encoding='utf-8') as f:
-                json.dump(notebook, f, indent=1, ensure_ascii=False)
-                f.write('\n')  # Add trailing newline
-            
-            print(f"✓ Fixed {notebook_path}")
-            return True
-    
-    print(f"⚠ {notebook_path} has unexpected widgets structure")
-    return False
+    print(f"✓ Removed widgets metadata from {notebook_path}")
+    return True
 
 
 def main():
